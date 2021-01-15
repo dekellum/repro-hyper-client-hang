@@ -1,0 +1,42 @@
+name: CI
+on:
+  pull_request:
+  push:
+
+jobs:
+
+  test:
+    name: ${{ matrix.rust }} ${{ matrix.os }} ${{ join(matrix.extras) }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - rust: 1.45.2
+            os: ubuntu-20.04
+          - rust: 1.45.2
+            os: macos-latest
+          - rust: 1.45.2
+            os: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install rust (${{ matrix.rust }})
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Test (default)
+        run: cargo test -- --test-threads=1 --nocapture
+        env:
+          RUST_BACKTRACE: 1
+          TEST_LOG: 2
+
+      - name: Test (no-delay)
+        run: cargo test --features=no-delay -- --test-threads=1 --nocapture
+        env:
+          RUST_BACKTRACE: 1
+          TEST_LOG: 2

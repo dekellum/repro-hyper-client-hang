@@ -63,8 +63,10 @@ fn streaming_echo() {
         let (url, srv) = service!(1, echo);
         let jh = spawn(srv);
 
+        let client = Client::builder().build(HttpConnector::new());
+
         let body = "chunk1chunk2".into();
-        let res = spawn(post_body_req(&url, body))
+        let res = spawn(post_body_req(&client, &url, body))
             .await
             .unwrap();
 
@@ -80,6 +82,7 @@ fn streaming_echo() {
             }
         }
 
+        drop(client);
         let _ = jh .await;
 
     });
@@ -97,7 +100,7 @@ async fn echo(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     Ok(Response::new(req.into_body()))
 }
 
-fn post_body_req(url: &str, body: Body)
+fn post_body_req(client: &Client<HttpConnector, Body>, url: &str, body: Body)
     -> impl Future<Output=Result<Response<Body>, hyper::Error>> + Send
 {
     let req: Request<Body> = http::Request::builder()
@@ -105,6 +108,5 @@ fn post_body_req(url: &str, body: Body)
         .uri(url)
         .body(body)
         .unwrap();
-    let client = Client::builder().build(HttpConnector::new());
     client.request(req)
 }

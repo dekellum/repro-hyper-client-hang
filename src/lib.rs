@@ -7,20 +7,17 @@ use std::net::SocketAddr;
 use std::net::TcpListener as StdTcpListener;
 
 use bytes::Buf;
-use bytes::Bytes;
-use futures::stream;
 use http::{Request, Response};
 use hyper::Body;
 use hyper::client::{Client, HttpConnector};
 use hyper::server::conn::Http;
 use hyper::service::service_fn;
-
 use tokio::net::TcpListener;
 use tokio::spawn;
 
 pub type Flaw = Box<dyn StdError + Send + Sync + 'static>;
 
-// Return a tuple of (serv: impl Future, url: String) that will service C
+// Return a tuple of (serv: impl Future, url: String) that will service
 // requests via function, and the url to access it via a local tcp port.
 macro_rules! service {
     ($c:literal, $s:ident) => {{
@@ -66,12 +63,7 @@ fn streaming_echo() {
         let (url, srv) = service!(1, echo);
         let jh = spawn(srv);
 
-        let s: Vec<Result<Bytes, hyper::Error>> = vec![
-            Ok(Bytes::from("chunk1")),
-            Ok(Bytes::from("chunk2"))];
-        let s = stream::iter(s);
-        let body = hyper::Body::wrap_stream(s);
-        // let body = "chunk1chunk2".into();
+        let body = "chunk1chunk2".into();
         let res = spawn(post_body_req(&url, body))
             .await
             .unwrap();

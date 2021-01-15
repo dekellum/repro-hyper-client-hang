@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use std::net::TcpListener as StdTcpListener;
 
 use bytes::Buf;
+use futures::StreamExt;
 use http::{Request, Response};
 use hyper::Body;
 use hyper::client::{Client, HttpConnector};
@@ -21,13 +22,15 @@ pub type Flaw = Box<dyn StdError + Send + Sync + 'static>;
 // requests via function, and the url to access it via a local tcp port.
 macro_rules! service {
     ($c:literal, $s:ident) => {{
-        let (listener, addr) = local_bind().unwrap();
+        let (mut listener, addr) = local_bind().unwrap();
         let fut = async move {
             for i in 0..$c {
                 eprintln!("service! accepting...");
-                let socket = listener.accept()
+                let mut incoming = listener.incoming();
+                let socket = incoming.next()
                     .await
-                    .expect("accept").0;
+                    .expect("some")
+                    .expect("socket");
 
                 #[cfg(feature = "no-delay")]
                 {
@@ -52,9 +55,10 @@ macro_rules! service {
 
 #[test]
 fn streaming_echo() {
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(2)
-        .max_blocking_threads(2)
+    let mut rt = tokio::runtime::Builder::new()
+        .core_threads(2)
+        .max_threads(2+2)
+        .threaded_scheduler()
         .enable_io()
         .enable_time()
         .build()

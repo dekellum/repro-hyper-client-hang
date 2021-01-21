@@ -11,6 +11,8 @@ http       = { version=">=0.2.2, <0.3" }
 http-body  = { version=">=0.4.0, <0.5" }
 hyper      = { version=">=0.14.2, <0.15", default-features=false, features=["http1", "client", "server", "stream", "tcp"] }
 tokio      = { version=">=1.0.1, <1.1", features=["rt-multi-thread"] }
+tracing    = { version=">=0.1.22, <0.2" }
+tracing-subscriber = { version=">=0.2.15, <0.3" }
 
 [features]
 no-delay = []

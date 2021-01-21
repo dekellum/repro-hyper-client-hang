@@ -14,6 +14,7 @@ use hyper::server::conn::Http;
 use hyper::service::service_fn;
 use tokio::net::TcpListener;
 use tokio::spawn;
+use tracing::info;
 
 pub type Flaw = Box<dyn StdError + Send + Sync + 'static>;
 
@@ -24,27 +25,27 @@ macro_rules! service {
         let (listener, addr) = local_bind().unwrap();
         let fut = async move {
             for i in 0..$c {
-                eprintln!("service! accepting...");
+                info!("service! accepting...");
                 let socket = listener.accept()
                     .await
                     .expect("accept").0;
 
                 #[cfg(feature = "no-delay")]
                 {
-                    eprintln!("service! setting nodelay");
+                    info!("service! setting nodelay");
                     socket.set_nodelay(true).expect("nodelay");
                 }
 
-                eprintln!("service! accepted, serve...");
+                info!("service! accepted, serve...");
                 let res = Http::new()
                     .serve_connection(socket, service_fn($s))
                     .await;
                 if let Err(e) = res {
-                    eprintln!("On service! [{}]: {}", i, e);
+                    info!("On service! [{}]: {}", i, e);
                     break;
                 }
             }
-            eprintln!("service! completing");
+            info!("service! completing");
         };
         (format!("http://{}", &addr), fut)
     }}
@@ -52,6 +53,8 @@ macro_rules! service {
 
 #[test]
 fn streaming_echo() {
+    tracing_subscriber::fmt::init();
+
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
         .max_blocking_threads(2)

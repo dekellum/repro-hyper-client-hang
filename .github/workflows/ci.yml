@@ -29,14 +29,14 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
 
-      - name: Test (no-delay)
-        run: cargo test --features=no-delay -- --test-threads=1 --nocapture
-        env:
-          RUST_BACKTRACE: 1
-          TEST_LOG: 2
-
       - name: Test (default)
         run: cargo test -- --test-threads=1 --nocapture
         env:
           RUST_BACKTRACE: 1
-          TEST_LOG: 2
+          RUST_LOG: trace
+
+      - name: Test (no-delay)
+        run: cargo test --features=no-delay -- --test-threads=1 --nocapture
+        env:
+          RUST_BACKTRACE: 1
+          RUST_LOG: trace

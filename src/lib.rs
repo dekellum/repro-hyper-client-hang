@@ -94,6 +94,7 @@ fn streaming_echo() {
 fn local_bind() -> Result<(TcpListener, SocketAddr), io::Error> {
     let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
     let std_listener = StdTcpListener::bind(addr).unwrap();
+    std_listener.set_nonblocking(true).unwrap();
     let listener = TcpListener::from_std(std_listener)?;
     let local_addr = listener.local_addr()?;
     Ok((listener, local_addr))

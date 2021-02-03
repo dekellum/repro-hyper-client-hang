@@ -4,7 +4,6 @@ use std::error::Error as StdError;
 use std::future::Future;
 use std::io;
 use std::net::SocketAddr;
-use std::net::TcpListener as StdTcpListener;
 
 use bytes::Buf;
 use http::{Request, Response};
@@ -21,12 +20,11 @@ pub type Flaw = Box<dyn StdError + Send + Sync + 'static>;
 // Return a tuple of (serv: impl Future, url: String) that will service
 // requests via function, and the url to access it via a local tcp port.
 macro_rules! service {
-    ($c:literal, $s:ident) => {{
-        let (listener, addr) = local_bind().unwrap();
-        let fut = async move {
+    ($c:literal, $l:ident, $s:ident) => {{
+        async move {
             for i in 0..$c {
                 info!("service! accepting...");
-                let socket = listener.accept()
+                let socket = $l.accept()
                     .await
                     .expect("accept").0;
 
@@ -46,8 +44,7 @@ macro_rules! service {
                 }
             }
             info!("service! completing");
-        };
-        (format!("http://{}", &addr), fut)
+        }
     }}
 }
 
@@ -63,7 +60,11 @@ fn streaming_echo() {
         .build()
         .expect("runtime");
     rt.block_on(async {
-        let (url, srv) = service!(1, echo);
+        let (listener, addr) = local_bind()
+            .await
+            .unwrap();
+        let url = format!("http://{}", &addr);
+        let srv = service!(1, listener, echo);
         let jh = spawn(srv);
 
         let client = Client::builder().build(HttpConnector::new());
@@ -91,10 +92,8 @@ fn streaming_echo() {
     });
 }
 
-fn local_bind() -> Result<(TcpListener, SocketAddr), io::Error> {
-    let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
-    let std_listener = StdTcpListener::bind(addr).unwrap();
-    let listener = TcpListener::from_std(std_listener)?;
+async fn local_bind() -> Result<(TcpListener, SocketAddr), io::Error> {
+    let listener = TcpListener::bind("127.0.0.1:0") .await?;
     let local_addr = listener.local_addr()?;
     Ok((listener, local_addr))
 }
